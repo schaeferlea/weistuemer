@@ -1,9 +1,6 @@
-// KOMPLETTE ÜBERARBEITETE script.js MIT ZEIT-KATEGORISIERUNG UND CSV-EXPORT UND NEUE-SUCHE-BUTTON
-
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
 
-    // Daten laden
     fetch("data.json")
         .then(response => response.json())
         .then(data => {
@@ -15,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
     const searchInput = document.getElementById("search-input");
-    const resetButton = document.getElementById("reset-search-btn"); // NEU
+    const resetButton = document.getElementById("reset-search-btn");
 
     searchInput.addEventListener("input", function () {
         performSearch();
@@ -31,7 +28,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    
     function performSearch() {
         const query = searchInput.value.trim();
         let regex;
@@ -52,10 +48,10 @@ document.addEventListener("DOMContentLoaded", function () {
         displayResults(filteredData, query);
     }
 
-
     function displayResults(data, query = "") {
         const resultsContainer = document.getElementById("results");
         resultsContainer.innerHTML = "";
+        const md = window.markdownit().use(window.markdownitFootnote);
 
         if (data.length === 0) {
             resultsContainer.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
@@ -65,11 +61,11 @@ document.addEventListener("DOMContentLoaded", function () {
         data.forEach(entry => {
             let resultItem = document.createElement("div");
             resultItem.classList.add("result-item");
-            resultItem.id = entry.id; 
+            resultItem.id = entry.id;
 
-            let formattedText = formatLineBreaks(entry.text);
-            let highlightedText = highlightText(formattedText, query);
-            let shortText = shortenText(highlightedText);
+            let formattedText = md.render(entry.text || "");
+            let shortText = shortenText(formattedText);
+            let highlightedText = query ? highlightText(formattedText, query) : formattedText;
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
@@ -94,20 +90,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const full = resultItem.querySelector(".text-full");
 
             toggleButton.addEventListener("click", function () {
-                if (full.classList.contains("hidden")) {
-                    full.classList.remove("hidden");
-                    preview.classList.add("hidden");
-                    toggleButton.textContent = "Weniger";
-                } else {
-                    full.classList.add("hidden");
-                    preview.classList.remove("hidden");
-                    toggleButton.textContent = "Mehr";
-                }
+                full.classList.toggle("hidden");
+                preview.classList.toggle("hidden");
+                toggleButton.textContent = full.classList.contains("hidden") ? "Mehr" : "Weniger";
             });
         });
     }
 
-    
     function highlightText(text, query) {
         if (!query) return text;
         let regex;
@@ -119,17 +108,16 @@ document.addEventListener("DOMContentLoaded", function () {
         return text.replace(regex, match => `<span class="highlight">${match}</span>`);
     }
 
-
     function formatLineBreaks(text) {
         return text.replace(/\n/g, "<br>");
     }
 
     function shortenText(text, length = 300) {
-        let div = document.createElement("div");
-        div.innerHTML = text;
-        let plain = div.textContent || div.innerText || "";
-        if (plain.length <= length) return text;
-        return plain.substring(0, length) + "...";
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = text;
+        const textContent = tempDiv.textContent || tempDiv.innerText || "";
+        if (textContent.length <= length) return text;
+        return textContent.substring(0, length) + "...";
     }
 
     function populateDropdowns(data) {
@@ -175,49 +163,19 @@ document.addEventListener("DOMContentLoaded", function () {
         data.forEach(entry => {
             if (entry.koordinaten && entry.koordinaten.lat && entry.koordinaten.lng) {
                 let marker = L.marker([entry.koordinaten.lat, entry.koordinaten.lng]).addTo(map);
-               marker.on('click', () => {
-    const target = document.getElementById(entry.id);
-    if (target) {
-        // sanft scrollen
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        // vorheriges Highlight entfernen
-        document.querySelectorAll('.result-item').forEach(el => {
-            el.classList.remove('highlight-entry');
-        });
-
-        // aktuelles hervorheben
-        target.classList.add('highlight-entry');
-
-        // nach ein paar Sekunden Highlight wieder entfernen
-        setTimeout(() => {
-            target.classList.remove('highlight-entry');
-        }, 3000);
-    }
-});
+                marker.on('click', () => {
+                    const target = document.getElementById(entry.id);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        document.querySelectorAll('.result-item').forEach(el => el.classList.remove('highlight-entry'));
+                        target.classList.add('highlight-entry');
+                        setTimeout(() => target.classList.remove('highlight-entry'), 3000);
+                    }
+                });
             }
         });
     }
 
-    //Fußnoten
-document.addEventListener("DOMContentLoaded", () => {
-  fetch("data.json")
-    .then(response => response.json())
-    .then(data => {
-      const md = window.markdownit().use(window.markdownitFootnote);
-      const container = document.getElementById("results");
-      container.innerHTML = "";
-
-      data.forEach(entry => {
-        const html = md.render(entry.text);
-        const div = document.createElement("div");
-        div.innerHTML = `<h2>${entry.titel}</h2>` + html;
-        container.appendChild(div);
-      });
-    });
-});
-    
-//ende fußnoten
     function kategorisiereZeit(rawZeit) {
         if (!rawZeit || typeof rawZeit !== "string") return "unbekannt";
 
@@ -248,18 +206,20 @@ document.addEventListener("DOMContentLoaded", () => {
         return "unbekannt";
     }
 
-    // CSV-Export
+    function kategorisiereAlleZeiten(data) {
+        data.forEach(entry => {
+            entry.zeit_kategorie = kategorisiereZeit(entry.zeit);
+        });
+    }
+
     document.getElementById("export-csv-btn").addEventListener("click", function () {
         exportToCSV(dataset, "weistuemer_export.csv");
     });
 
     function exportToCSV(data, filename) {
         if (!data || !data.length) return;
-
         const headers = Object.keys(data[0]);
-        const csvRows = [];
-
-        csvRows.push(headers.join(","));
+        const csvRows = [headers.join(",")];
 
         data.forEach(entry => {
             const row = headers.map(header => {
@@ -270,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (typeof value === "string") {
                     value = value.replace(/"/g, '""');
                 }
-                return `"${value}"`;
+                return \`"\${value}"\`;
             }).join(",");
             csvRows.push(row);
         });
