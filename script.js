@@ -199,6 +199,17 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    //Fußnoten
+    const md = window.markdownit().use(window.markdownitFootnote);
+    const markdownText = `
+    Dies ist ein Satz mit Fußnote[^1].
+    
+    [^1]: Fußnotentext direkt im Markdown.
+    `;
+
+    const html = md.render(markdownText);
+    document.getElementById("output").innerHTML = html;
+
     // ZEIT-KATEGORISIERUNG
     function kategorisiereAlleZeiten(dataset) {
         dataset.forEach(entry => {
