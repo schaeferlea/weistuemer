@@ -200,22 +200,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     //Fußnoten
+  function renderEntries(data) {
     const md = window.markdownit().use(window.markdownitFootnote);
-    const markdownText = `
-    Dies ist ein Satz mit Fußnote[^1].
-    
-    [^1]: Fußnotentext direkt im Markdown.
-    `;
+    const container = document.getElementById("results");
+    container.innerHTML = "";
 
-    const html = md.render(markdownText);
-    document.getElementById("output").innerHTML = html;
+    data.forEach(entry => {
+      const entryDiv = document.createElement("div");
+      entryDiv.classList.add("result-item");
 
-    // ZEIT-KATEGORISIERUNG
-    function kategorisiereAlleZeiten(dataset) {
-        dataset.forEach(entry => {
-            entry.zeit_kategorie = kategorisiereZeit(entry.zeit);
-        });
-    }
+      const title = entry.titel ? `<h2>${entry.titel}</h2>` : "";
+      const rendered = md.render(entry.text || "");
+
+      entryDiv.innerHTML = title + rendered;
+      container.appendChild(entryDiv);
+    });
+  }
 
     function kategorisiereZeit(rawZeit) {
         if (!rawZeit || typeof rawZeit !== "string") return "unbekannt";
