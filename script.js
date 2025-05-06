@@ -200,23 +200,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     //Fußnoten
-  function renderEntries(data) {
-    const md = window.markdownit().use(window.markdownitFootnote);
-    const container = document.getElementById("results");
-    container.innerHTML = "";
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("data.json")
+    .then(response => response.json())
+    .then(data => {
+      const md = window.markdownit().use(window.markdownitFootnote);
+      const container = document.getElementById("results");
+      container.innerHTML = "";
 
-    data.forEach(entry => {
-      const entryDiv = document.createElement("div");
-      entryDiv.classList.add("result-item");
-
-      const title = entry.titel ? `<h2>${entry.titel}</h2>` : "";
-      const rendered = md.render(entry.text || "");
-
-      entryDiv.innerHTML = title + rendered;
-      container.appendChild(entryDiv);
+      data.forEach(entry => {
+        const html = md.render(entry.text);
+        const div = document.createElement("div");
+        div.innerHTML = `<h2>${entry.titel}</h2>` + html;
+        container.appendChild(div);
+      });
     });
-  }
-
+});
+    
+//ende fußnoten
     function kategorisiereZeit(rawZeit) {
         if (!rawZeit || typeof rawZeit !== "string") return "unbekannt";
 
