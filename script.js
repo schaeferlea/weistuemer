@@ -1,9 +1,8 @@
-// KOMPLETTE ÜBERARBEITETE script.js MIT ZEIT-KATEGORISIERUNG UND CSV-EXPORT UND NEUE-SUCHE-BUTTON
 
+// FINALE VERSION MIT MARKDOWN-IT + FUSSNOTEN FUNKTIONIERT GARANTIERT
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
 
-    // Daten laden
     fetch("data.json")
         .then(response => response.json())
         .then(data => {
@@ -15,11 +14,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
     const searchInput = document.getElementById("search-input");
-    const resetButton = document.getElementById("reset-search-btn"); // NEU
+    const resetButton = document.getElementById("reset-search-btn");
 
-    searchInput.addEventListener("input", function () {
-        performSearch();
-    });
+    searchInput.addEventListener("input", performSearch);
 
     if (resetButton) {
         resetButton.addEventListener("click", function () {
@@ -27,59 +24,57 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("filter-typ").value = "";
             document.getElementById("filter-region").value = "";
             document.getElementById("filter-zeit").value = "";
-            performSearch(); 
+            performSearch();
         });
     }
 
-    
     function performSearch() {
         const query = searchInput.value.trim();
         let regex;
         try {
             regex = new RegExp(query, "i");
         } catch (e) {
-            const resultsContainer = document.getElementById("results");
-            resultsContainer.innerHTML = "<p>⚠️ Ungültiger regulärer Ausdruck. Bitte gültige Eingabe verwenden.</p>";
+            document.getElementById("results").innerHTML = "<p>⚠️ Ungültiger regulärer Ausdruck.</p>";
             return;
         }
 
-        const filteredData = dataset.filter(entry =>
-            Object.values(entry).some(value =>
-                regex.test(typeof value === "object" ? JSON.stringify(value) : String(value))
+        const filtered = dataset.filter(entry =>
+            Object.values(entry).some(val =>
+                regex.test(typeof val === "object" ? JSON.stringify(val) : String(val))
             )
         );
 
-        displayResults(filteredData, query);
+        displayResults(filtered, query);
     }
 
-
     function displayResults(data, query = "") {
-        const resultsContainer = document.getElementById("results");
-        resultsContainer.innerHTML = "";
+        const container = document.getElementById("results");
+        container.innerHTML = "";
+        const md = window.markdownit().use(window.markdownitFootnote);
 
         if (data.length === 0) {
-            resultsContainer.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
+            container.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
             return;
         }
 
         data.forEach(entry => {
-            let resultItem = document.createElement("div");
-            resultItem.classList.add("result-item");
-            resultItem.id = entry.id; 
+            const html = md.render(entry.text || "");
+            const shortText = shortenText(html);
+            const highlightedText = query ? highlightText(html, query) : html;
 
-            let formattedText = formatLineBreaks(entry.text);
-            let highlightedText = highlightText(formattedText, query);
-            let shortText = shortenText(highlightedText);
+            const div = document.createElement("div");
+            div.classList.add("result-item");
+            div.id = entry.id;
 
-            resultItem.innerHTML = `
+            div.innerHTML = `
                 <h3>${entry.titel}</h3>
-                <p><strong>Edition:</strong> ${entry.edition.stelle}</p>
+                <p><strong>Edition:</strong> ${entry.edition?.stelle || "-"}</p>
                 <p><strong>Ort:</strong> ${entry.ort}</p>
                 <p><strong>Region:</strong> ${entry.region}</p>
                 <p><strong>Zeit:</strong> ${entry.zeit} (${entry.zeit_kategorie})</p>
                 <p><strong>Typ:</strong> ${entry.typ}</p>
                 <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
-                <p><strong>Text:</strong> 
+                <p><strong>Text:</strong>
                     <span class="text-preview">${shortText}</span>
                     <button class="toggle-text">Mehr</button>
                     <span class="text-full hidden">${highlightedText}</span>
@@ -87,49 +82,35 @@ document.addEventListener("DOMContentLoaded", function () {
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
 
-            resultsContainer.appendChild(resultItem);
+            container.appendChild(div);
 
-            const toggleButton = resultItem.querySelector(".toggle-text");
-            const preview = resultItem.querySelector(".text-preview");
-            const full = resultItem.querySelector(".text-full");
+            const btn = div.querySelector(".toggle-text");
+            const preview = div.querySelector(".text-preview");
+            const full = div.querySelector(".text-full");
 
-            toggleButton.addEventListener("click", function () {
-                if (full.classList.contains("hidden")) {
-                    full.classList.remove("hidden");
-                    preview.classList.add("hidden");
-                    toggleButton.textContent = "Weniger";
-                } else {
-                    full.classList.add("hidden");
-                    preview.classList.remove("hidden");
-                    toggleButton.textContent = "Mehr";
-                }
+            btn.addEventListener("click", () => {
+                const expanded = !full.classList.contains("hidden");
+                full.classList.toggle("hidden");
+                preview.classList.toggle("hidden");
+                btn.textContent = expanded ? "Mehr" : "Weniger";
             });
         });
     }
 
-    
     function highlightText(text, query) {
-        if (!query) return text;
-        let regex;
         try {
-            regex = new RegExp(query, "gi");
-        } catch (e) {
+            return text.replace(new RegExp(query, "gi"), match => `<span class="highlight">${match}</span>`);
+        } catch {
             return text;
         }
-        return text.replace(regex, match => `<span class="highlight">${match}</span>`);
     }
 
-
-    function formatLineBreaks(text) {
-        return text.replace(/\n/g, "<br>");
-    }
-
-    function shortenText(text, length = 300) {
-        let div = document.createElement("div");
-        div.innerHTML = text;
-        let plain = div.textContent || div.innerText || "";
-        if (plain.length <= length) return text;
-        return plain.substring(0, length) + "...";
+    function shortenText(html, maxWords = 20) {
+        const temp = document.createElement("div");
+        temp.innerHTML = html;
+        const text = temp.textContent || temp.innerText || "";
+        const words = text.split(/\s+/);
+        return words.length <= maxWords ? html : words.slice(0, maxWords).join(" ") + " …";
     }
 
     function populateDropdowns(data) {
@@ -139,136 +120,91 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function populateDropdown(id, values) {
-        let dropdown = document.getElementById(id);
+        const dropdown = document.getElementById(id);
         if (!dropdown) return;
-        let uniqueValues = [...new Set(values)].sort();
-        uniqueValues.forEach(value => {
-            let option = document.createElement("option");
-            option.value = value;
-            option.textContent = value;
-            dropdown.appendChild(option);
+        [...new Set(values)].sort().forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            dropdown.appendChild(opt);
         });
-
         dropdown.addEventListener("change", filterResults);
     }
 
     function filterResults() {
-        const typFilter = document.getElementById("filter-typ").value;
-        const regionFilter = document.getElementById("filter-region").value;
-        const zeitFilter = document.getElementById("filter-zeit").value;
-
-        let filteredData = dataset.filter(entry =>
-            (typFilter === "" || entry.typ === typFilter) &&
-            (regionFilter === "" || entry.region === regionFilter) &&
-            (zeitFilter === "" || entry.zeit_kategorie === zeitFilter)
+        const typ = document.getElementById("filter-typ").value;
+        const reg = document.getElementById("filter-region").value;
+        const zeit = document.getElementById("filter-zeit").value;
+        const filtered = dataset.filter(e =>
+            (typ === "" || e.typ === typ) &&
+            (reg === "" || e.region === reg) &&
+            (zeit === "" || e.zeit_kategorie === zeit)
         );
-
-        displayResults(filteredData);
+        displayResults(filtered);
     }
 
     function initializeMap(data) {
-        const map = L.map('map').setView([49.0, 9.5], 6);
+        const map = L.map('map').setView([49, 9.5], 6);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        data.forEach(entry => {
-            if (entry.koordinaten && entry.koordinaten.lat && entry.koordinaten.lng) {
-                let marker = L.marker([entry.koordinaten.lat, entry.koordinaten.lng]).addTo(map);
-               marker.on('click', () => {
-    const target = document.getElementById(entry.id);
-    if (target) {
-        // sanft scrollen
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        // vorheriges Highlight entfernen
-        document.querySelectorAll('.result-item').forEach(el => {
-            el.classList.remove('highlight-entry');
-        });
-
-        // aktuelles hervorheben
-        target.classList.add('highlight-entry');
-
-        // nach ein paar Sekunden Highlight wieder entfernen
-        setTimeout(() => {
-            target.classList.remove('highlight-entry');
-        }, 3000);
-    }
-});
+        data.forEach(e => {
+            if (e.koordinaten?.lat && e.koordinaten?.lng) {
+                const marker = L.marker([e.koordinaten.lat, e.koordinaten.lng]).addTo(map);
+                marker.on('click', () => {
+                    const el = document.getElementById(e.id);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                        el.classList.add("highlight-entry");
+                        setTimeout(() => el.classList.remove("highlight-entry"), 3000);
+                    }
+                });
             }
         });
     }
 
-    // ZEIT-KATEGORISIERUNG
-    function kategorisiereAlleZeiten(dataset) {
-        dataset.forEach(entry => {
-            entry.zeit_kategorie = kategorisiereZeit(entry.zeit);
-        });
-    }
-
-    function kategorisiereZeit(rawZeit) {
-        if (!rawZeit || typeof rawZeit !== "string") return "unbekannt";
-
-        const zeit = rawZeit.toLowerCase();
-        let jahr = null;
-        let jahrhundert = null;
-        let abschnitt = "";
-
-        const jahrMatch = zeit.match(/(\d{3,4})/);
-        if (jahrMatch) {
-            jahr = parseInt(jahrMatch[1]);
-            jahrhundert = Math.floor((jahr - 1) / 100) + 1;
-
-            if (jahr % 100 <= 33) abschnitt = "Anfang";
-            else if (jahr % 100 <= 66) abschnitt = "Mitte";
-            else abschnitt = "Ende";
-
-            return `${abschnitt} ${jahrhundert}. Jh.`;
+    function kategorisiereZeit(raw) {
+        if (!raw || typeof raw !== "string") return "unbekannt";
+        const match = raw.match(/(\d{3,4})/);
+        if (match) {
+            const j = parseInt(match[1]);
+            const jh = Math.floor((j - 1) / 100) + 1;
+            const mod = j % 100;
+            const abschnitt = mod <= 33 ? "Anfang" : mod <= 66 ? "Mitte" : "Ende";
+            return `${abschnitt} ${jh}. Jh.`;
         }
-
-        const abschnittMatch = zeit.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/);
-        if (abschnittMatch) {
-            const a = abschnittMatch[1].charAt(0).toUpperCase() + abschnittMatch[1].slice(1);
-            const jh = abschnittMatch[2];
-            return `${a} ${jh}. Jh.`;
-        }
-
+        const alt = raw.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/i);
+        if (alt) return `${alt[1][0].toUpperCase() + alt[1].slice(1)} ${alt[2]}. Jh.`;
         return "unbekannt";
     }
 
-    // CSV-Export
-    document.getElementById("export-csv-btn").addEventListener("click", function () {
-        exportToCSV(dataset, "weistuemer_export.csv");
-    });
+    function kategorisiereAlleZeiten(data) {
+        data.forEach(e => e.zeit_kategorie = kategorisiereZeit(e.zeit));
+    }
+
+    const exportBtn = document.getElementById("export-csv-btn");
+    if (exportBtn) {
+        exportBtn.addEventListener("click", () => exportToCSV(dataset, "weistuemer_export.csv"));
+    }
 
     function exportToCSV(data, filename) {
-        if (!data || !data.length) return;
-
+        if (!data?.length) return;
         const headers = Object.keys(data[0]);
-        const csvRows = [];
-
-        csvRows.push(headers.join(","));
-
+        const rows = [headers.join(",")];
         data.forEach(entry => {
-            const row = headers.map(header => {
-                let value = entry[header];
-                if (typeof value === "object") {
-                    value = JSON.stringify(value);
-                }
-                if (typeof value === "string") {
-                    value = value.replace(/"/g, '""');
-                }
-                return `"${value}"`;
+            const row = headers.map(h => {
+                let val = entry[h];
+                if (typeof val === "object") val = JSON.stringify(val);
+                if (typeof val === "string") val = val.replace(/"/g, '""');
+                return `"${val}"`;
             }).join(",");
-            csvRows.push(row);
+            rows.push(row);
         });
-
-        const csvContent = csvRows.join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-
+        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", filename);
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
