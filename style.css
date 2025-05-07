@@ -112,3 +112,15 @@ a:link {
 .result-item h3 {
     color: #4478A8;
 }
+.footnotes {
+  font-size: 0.9em;
+  border-top: 1px solid #aaa;
+  margin-top: 1em;
+  padding-top: 1em;
+}
+.footnotes ol {
+  padding-left: 1.5em;
+}
+.footnotes li {
+  margin-bottom: 0.5em;
+}
