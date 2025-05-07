@@ -67,9 +67,10 @@ document.addEventListener("DOMContentLoaded", function () {
             resultItem.classList.add("result-item");
             resultItem.id = entry.id; 
 
-            let formattedText = formatLineBreaks(entry.text);
-            let highlightedText = highlightText(formattedText, query);
-            let shortText = shortenText(highlightedText);
+           const md = window.markdownit().use(window.markdownitFootnote);
+            let renderedText = md.render(entry.text || "");
+            let highlightedText = highlightText(renderedText, query);
+            let shortText = shortenText(renderedText);
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
