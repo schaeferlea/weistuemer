@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return text.replace(/\n/g, "<br>");
     }
 
-    function shortenText(text, wordLimit = 20) {
+    function shortenText(text, wordLimit = 200) {
     // Nur reinen Text extrahieren (ohne HTML, Fußnoten etc.)
     let plainText = text.replace(/\n/g, ' ').replace(/\[\^(\d+)\]/g, '').replace(/\[\^(\d+)\]:.*$/gm, '');
     let words = plainText.split(/\s+/).slice(0, wordLimit).join(" ");
