@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", function () {
            const md = window.markdownit().use(window.markdownitFootnote);
             let renderedText = md.render(entry.text || "");
             let highlightedText = highlightText(renderedText, query);
-            let shortText = shortenText(renderedText);
+            let shortText = shortenText(entry.text);
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
@@ -125,13 +125,12 @@ document.addEventListener("DOMContentLoaded", function () {
         return text.replace(/\n/g, "<br>");
     }
 
-    function shortenText(text, length = 300) {
-        let div = document.createElement("div");
-        div.innerHTML = text;
-        let plain = div.textContent || div.innerText || "";
-        if (plain.length <= length) return text;
-        return plain.substring(0, length) + "...";
-    }
+    function shortenText(text, wordLimit = 20) {
+    // Nur reinen Text extrahieren (ohne HTML, Fußnoten etc.)
+    let plainText = text.replace(/\n/g, ' ').replace(/\[\^(\d+)\]/g, '').replace(/\[\^(\d+)\]:.*$/gm, '');
+    let words = plainText.split(/\s+/).slice(0, wordLimit).join(" ");
+    return words + "…";
+}
 
     function populateDropdowns(data) {
         populateDropdown("filter-typ", data.map(d => d.typ));
