@@ -81,13 +81,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Typ:</strong> ${entry.typ}</p>
                 <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
                 <p><strong>Text:</strong> 
-                    <span class="text-preview">${shortText}</span>
+                    <p><strong>Text:</strong> 
+                    <span class="text-preview"></span>
+                    <button class="toggle-text">Mehr</button>
+                    <span class="text-full hidden">${highlightedText}</span>
+                    </p>
                     <button class="toggle-text">Mehr</button>
                     <span class="text-full hidden">${highlightedText}</span>
                 </p>
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
 
+            resultItem.querySelector(".text-preview").textContent = shortText;
             resultsContainer.appendChild(resultItem);
 
             const toggleButton = resultItem.querySelector(".toggle-text");
