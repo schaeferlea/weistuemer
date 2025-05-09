@@ -80,11 +80,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Zeit:</strong> ${entry.zeit} (${entry.zeit_kategorie})</p>
                 <p><strong>Typ:</strong> ${entry.typ}</p>
                 <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
-                <p><strong>Text:</strong> 
-                    <span class="text-preview">${shortText}</span>
-                    <button class="toggle-text">Mehr</button>
-                    <span class="text-full hidden">${highlightedText}</span>
-                </p>
+                <p><strong>Text:</strong>
+                      <span class="text-preview">${previewText}</span>
+                      <button class="toggle-text">Mehr</button>
+                      <span class="text-full hidden">${rendered}</span>
+                    </p>
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
 
