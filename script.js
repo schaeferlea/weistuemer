@@ -1,7 +1,5 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
-
     const md = window.markdownit().use(window.markdownitFootnote);
 
     fetch("data.json")
@@ -20,12 +18,12 @@ document.addEventListener("DOMContentLoaded", function () {
     searchInput.addEventListener("input", performSearch);
 
     if (resetButton) {
-        resetButton.addEventListener("click", function () {
+        resetButton.addEventListener("click", () => {
             searchInput.value = "";
             document.getElementById("filter-typ").value = "";
             document.getElementById("filter-region").value = "";
             document.getElementById("filter-zeit").value = "";
-            performSearch(); 
+            performSearch();
         });
     }
 
@@ -64,17 +62,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const htmlFull = md.render(entry.text || "");
 
-            const htmlPreview = htmlFull
-                .replace(/<section class="footnotes">[\s\S]*$/g, "")
-                .replace(/<sup[^>]*>.*?<\/sup>/g, "");
-
-            const div = document.createElement("div");
-            div.innerHTML = htmlPreview;
-            const plain = div.textContent || div.innerText || "";
-            const words = plain.trim().split(/\s+/).filter(Boolean);
+            // Vorschautext aus reinem Text (Markdown ungerendert)
+            const previewPlain = (entry.text || "")
+                .replace(/\[\^(\d+)\]/g, '') // Fußnotenzeichen raus
+                .replace(/\[\^(\d+)\]:.*$/gm, '') // Fußnotentext raus
+                .replace(/\n/g, ' ');
+            const words = previewPlain.split(/\s+/).filter(Boolean);
             const shortText = words.slice(0, 20).join(" ") + (words.length > 20 ? " …" : "");
-
-            const highlightedText = query ? highlightText(htmlFull, query) : htmlFull;
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
@@ -87,22 +81,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Text:</strong>
                     <span class="text-preview">${shortText}</span>
                     <button class="toggle-text">Mehr</button>
-                    <span class="text-full hidden">${highlightedText}</span>
+                    <span class="text-full hidden">${htmlFull}</span>
                 </p>
-                ${entry.original_link ? `<p><a href="\${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
+                ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
 
             resultsContainer.appendChild(resultItem);
 
-            const toggleButton = resultItem.querySelector(".toggle-text");
-            const preview = resultItem.querySelector(".text-preview");
-            const full = resultItem.querySelector(".text-full");
+            const toggleBtn = resultItem.querySelector(".toggle-text");
+            const previewEl = resultItem.querySelector(".text-preview");
+            const fullEl = resultItem.querySelector(".text-full");
 
-            toggleButton.addEventListener("click", function () {
-                const isHidden = full.classList.contains("hidden");
-                full.classList.toggle("hidden");
-                preview.classList.toggle("hidden");
-                toggleButton.textContent = isHidden ? "Weniger" : "Mehr";
+            toggleBtn.addEventListener("click", () => {
+                fullEl.classList.toggle("hidden");
+                previewEl.classList.toggle("hidden");
+                toggleBtn.textContent = fullEl.classList.contains("hidden") ? "Mehr" : "Weniger";
             });
         });
     }
@@ -189,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         const abschnittMatch = zeit.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/);
         if (abschnittMatch) {
-            return \`\${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} \${abschnittMatch[2]}. Jh.\`;
+            return `${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} ${abschnittMatch[2]}. Jh.`;
         }
         return "unbekannt";
     }
