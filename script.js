@@ -1,7 +1,9 @@
+
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
 
-    // Daten laden
+    const md = window.markdownit().use(window.markdownitFootnote);
+
     fetch("data.json")
         .then(response => response.json())
         .then(data => {
@@ -13,11 +15,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
     const searchInput = document.getElementById("search-input");
-    const resetButton = document.getElementById("reset-search-btn"); 
+    const resetButton = document.getElementById("reset-search-btn");
 
-    searchInput.addEventListener("input", function () {
-        performSearch();
-    });
+    searchInput.addEventListener("input", performSearch);
 
     if (resetButton) {
         resetButton.addEventListener("click", function () {
@@ -35,42 +35,50 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             regex = new RegExp(query, "i");
         } catch (e) {
-            const resultsContainer = document.getElementById("results");
-            resultsContainer.innerHTML = "<p>⚠️ Ungültiger regulärer Ausdruck.</p>";
+            document.getElementById("results").innerHTML = "<p>⚠️ Ungültiger regulärer Ausdruck.</p>";
             return;
         }
 
-        const filteredData = dataset.filter(entry =>
+        const filtered = dataset.filter(entry =>
             Object.values(entry).some(value =>
                 regex.test(typeof value === "object" ? JSON.stringify(value) : String(value))
             )
         );
 
-        displayResults(filteredData, query);
+        displayResults(filtered, query);
     }
 
     function displayResults(data, query = "") {
         const resultsContainer = document.getElementById("results");
         resultsContainer.innerHTML = "";
 
-        if (data.length === 0) {
+        if (!data.length) {
             resultsContainer.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
             return;
         }
 
         data.forEach(entry => {
-            let resultItem = document.createElement("div");
+            const resultItem = document.createElement("div");
             resultItem.classList.add("result-item");
-            resultItem.id = entry.id; 
+            resultItem.id = entry.id;
 
-            const md = window.markdownit().use(window.markdownitFootnote);
-            let renderedText = md.render(entry.text || "");
-            let highlightedText = highlightText(renderedText, query);
-            let shortText = shortenText(entry.text);
+            const htmlFull = md.render(entry.text || "");
+
+            const htmlPreview = htmlFull
+                .replace(/<section class="footnotes">[\s\S]*$/g, "")
+                .replace(/<sup[^>]*>.*?<\/sup>/g, "");
+
+            const div = document.createElement("div");
+            div.innerHTML = htmlPreview;
+            const plain = div.textContent || div.innerText || "";
+            const words = plain.trim().split(/\s+/).filter(Boolean);
+            const shortText = words.slice(0, 20).join(" ") + (words.length > 20 ? " …" : "");
+
+            const highlightedText = query ? highlightText(htmlFull, query) : htmlFull;
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
-                <p><strong>Edition:</strong> ${entry.edition.stelle}</p>
+                <p><strong>Edition:</strong> ${entry.edition?.stelle || "-"}</p>
                 <p><strong>Ort:</strong> ${entry.ort}</p>
                 <p><strong>Region:</strong> ${entry.region}</p>
                 <p><strong>Zeit:</strong> ${entry.zeit} (${entry.zeit_kategorie})</p>
@@ -81,91 +89,74 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button class="toggle-text">Mehr</button>
                     <span class="text-full hidden">${highlightedText}</span>
                 </p>
-                ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
+                ${entry.original_link ? `<p><a href="\${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
+
             resultsContainer.appendChild(resultItem);
 
-            // Toggle-Logik: Vorschau <-> Volltext umschalten
             const toggleButton = resultItem.querySelector(".toggle-text");
             const preview = resultItem.querySelector(".text-preview");
             const full = resultItem.querySelector(".text-full");
 
             toggleButton.addEventListener("click", function () {
-                if (full.classList.contains("hidden")) {
-                    full.classList.remove("hidden");
-                    preview.classList.add("hidden");
-                    toggleButton.textContent = "Weniger";
-                } else {
-                    full.classList.add("hidden");
-                    preview.classList.remove("hidden");
-                    toggleButton.textContent = "Mehr";
-                }
+                const isHidden = full.classList.contains("hidden");
+                full.classList.toggle("hidden");
+                preview.classList.toggle("hidden");
+                toggleButton.textContent = isHidden ? "Weniger" : "Mehr";
             });
         });
     }
 
     function highlightText(text, query) {
-        if (!query) return text;
-        let regex;
         try {
-            regex = new RegExp(query, "gi");
-        } catch (e) {
+            const regex = new RegExp(query, "gi");
+            return text.replace(regex, match => `<span class="highlight">${match}</span>`);
+        } catch {
             return text;
         }
-        return text.replace(regex, match => `<span class="highlight">${match}</span>`);
     }
 
-    function formatLineBreaks(text) {
-        return text.replace(/\n/g, "<br>");
-    }
-
-    // Hier limitieren wir auf 20 Wörter statt 200
-    function shortenText(text, wordLimit = 20) {
-        let plainText = text
-            .replace(/\n/g, ' ')
-            .replace(/\[\^(\d+)\]/g, '')
-            .replace(/\[\^(\d+)\]:.*$/gm, '');
-        let words = plainText.split(/\s+/).slice(0, wordLimit).join(" ");
-        return words + "…";
-    }
-
-    // Restliche Funktionen unverändert: Filter-Dropdowns, Karte, CSV, Zeit-Kategorisierung
     function populateDropdowns(data) {
         populateDropdown("filter-typ", data.map(d => d.typ));
         populateDropdown("filter-region", data.map(d => d.region));
         populateDropdown("filter-zeit", data.map(d => d.zeit_kategorie));
     }
+
     function populateDropdown(id, values) {
-        let dropdown = document.getElementById(id);
+        const dropdown = document.getElementById(id);
         if (!dropdown) return;
-        let uniqueValues = [...new Set(values)].sort();
-        uniqueValues.forEach(value => {
-            let option = document.createElement("option");
-            option.value = value;
-            option.textContent = value;
-            dropdown.appendChild(option);
+        [...new Set(values)].sort().forEach(val => {
+            const opt = document.createElement("option");
+            opt.value = val;
+            opt.textContent = val;
+            dropdown.appendChild(opt);
         });
         dropdown.addEventListener("change", filterResults);
     }
+
     function filterResults() {
-        const typFilter = document.getElementById("filter-typ").value;
-        const regionFilter = document.getElementById("filter-region").value;
-        const zeitFilter = document.getElementById("filter-zeit").value;
-        let filteredData = dataset.filter(entry =>
-            (typFilter === "" || entry.typ === typFilter) &&
-            (regionFilter === "" || entry.region === regionFilter) &&
-            (zeitFilter === "" || entry.zeit_kategorie === zeitFilter)
+        const typ = document.getElementById("filter-typ").value;
+        const region = document.getElementById("filter-region").value;
+        const zeit = document.getElementById("filter-zeit").value;
+
+        const filtered = dataset.filter(entry =>
+            (typ === "" || entry.typ === typ) &&
+            (region === "" || entry.region === region) &&
+            (zeit === "" || entry.zeit_kategorie === zeit)
         );
-        displayResults(filteredData);
+
+        displayResults(filtered);
     }
+
     function initializeMap(data) {
         const map = L.map('map').setView([49.0, 9.5], 6);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+
         data.forEach(entry => {
-            if (entry.koordinaten && entry.koordinaten.lat && entry.koordinaten.lng) {
-                let marker = L.marker([entry.koordinaten.lat, entry.koordinaten.lng]).addTo(map);
+            if (entry.koordinaten?.lat && entry.koordinaten?.lng) {
+                const marker = L.marker([entry.koordinaten.lat, entry.koordinaten.lng]).addTo(map);
                 marker.on('click', () => {
                     const target = document.getElementById(entry.id);
                     if (target) {
@@ -178,11 +169,13 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
     function kategorisiereAlleZeiten(dataset) {
         dataset.forEach(entry => {
             entry.zeit_kategorie = kategorisiereZeit(entry.zeit);
         });
     }
+
     function kategorisiereZeit(rawZeit) {
         if (!rawZeit || typeof rawZeit !== "string") return "unbekannt";
         const zeit = rawZeit.toLowerCase();
@@ -190,47 +183,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (jahrMatch) {
             const jahr = parseInt(jahrMatch[1]);
             const jahrhundert = Math.floor((jahr - 1) / 100) + 1;
-            const rest = jahr % 100;
-            const abschnitt = (rest <= 33 ? "Anfang" : rest <= 66 ? "Mitte" : "Ende");
+            const mod = jahr % 100;
+            const abschnitt = mod <= 33 ? "Anfang" : mod <= 66 ? "Mitte" : "Ende";
             return `${abschnitt} ${jahrhundert}. Jh.`;
         }
         const abschnittMatch = zeit.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/);
         if (abschnittMatch) {
-            const abschnitt = abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1);
-            return `${abschnitt} ${abschnittMatch[2]}. Jh.`;
+            return \`\${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} \${abschnittMatch[2]}. Jh.\`;
         }
         return "unbekannt";
-    }
-
-    // CSV-Export (unverändert)
-    document.getElementById("export-csv-btn").addEventListener("click", function () {
-        exportToCSV(dataset, "weistuemer_export.csv");
-    });
-    function exportToCSV(data, filename) {
-        if (!data || !data.length) return;
-        const headers = Object.keys(data[0]);
-        const csvRows = [];
-        csvRows.push(headers.join(","));
-        data.forEach(entry => {
-            const row = headers.map(header => {
-                let value = entry[header];
-                if (typeof value === "object") {
-                    value = JSON.stringify(value);
-                }
-                if (typeof value === "string") {
-                    value = value.replace(/"/g, '""');
-                }
-                return `"${value}"`;
-            }).join(",");
-            csvRows.push(row);
-        });
-        const csvContent = csvRows.join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
     }
 });
