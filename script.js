@@ -1,4 +1,4 @@
-// KOMPLETTE ÜBERARBEITETE script.js MIT ZEIT-KATEGORISIERUNG UND CSV-EXPORT UND NEUE-SUCHE-BUTTON
+
 
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
@@ -68,9 +68,9 @@ document.addEventListener("DOMContentLoaded", function () {
             resultItem.id = entry.id; 
 
            const md = window.markdownit().use(window.markdownitFootnote);
-            let renderedText = md.render(entry.text || "");
-            let highlightedText = highlightText(renderedText, query);
-            let shortText = shortenText(entry.text);
+            const rendered = md.render(entry.text || "");
+            const plainText = entry.text.replace(/\[\^(\d+)\]/g, '').replace(/\[\^(\d+)\]:.*$/gm, '').replace(/\n/g, ' ');
+            const previewText = plainText.split(/\s+/).slice(0, 20).join(" ") + " …";
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
