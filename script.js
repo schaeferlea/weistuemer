@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
     const md = window.markdownit().use(window.markdownitFootnote);
@@ -61,7 +60,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const rendered = md.render(entry.text || "");
 
-            // Nur für Vorschau: reiner Text, Fußnoten raus
             const cleaned = (entry.text || "").replace(/\[\^(\d+)\]/g, '').replace(/\[\^(\d+)\]:(.*)$/gm, '');
             const plain = cleaned.replace(/\n/g, ' ');
             const preview = plain.split(/\s+/).slice(0, 25).join(" ") + " …";
@@ -166,14 +164,14 @@ document.addEventListener("DOMContentLoaded", function () {
             const abschnitt = mod <= 33 ? "Anfang" : mod <= 66 ? "Mitte" : "Ende";
             return `${abschnitt} ${jahrhundert}. Jh.`;
         }
-        const abschnittMatch = zeit.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/);
+        const abschnittMatch = rawZeit.match(/(Anfang|Mitte|Ende)\s*(\d{1,2})\.\s*Jh\./i);
         if (abschnittMatch) {
-            return \`\${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} \${abschnittMatch[2]}. Jh.\`;
+            const abschnitt = abschnittMatch[1].toLowerCase();
+            return `${abschnitt[0].toUpperCase()}${abschnitt.slice(1)} ${abschnittMatch[2]}. Jh.`;
         }
         return "unbekannt";
     }
 
-    // CSV Export
     document.getElementById("export-csv-btn").addEventListener("click", () => {
         exportToCSV(dataset, "weistuemer_export.csv");
     });
