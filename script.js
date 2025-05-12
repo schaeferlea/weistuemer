@@ -58,11 +58,15 @@ document.addEventListener("DOMContentLoaded", function () {
             resultItem.classList.add("result-item");
             resultItem.id = entry.id;
 
-            const rendered = md.render(entry.text || "");
-
-            const cleaned = (entry.text || "").replace(/\[\^(\d+)\]/g, '').replace(/\[\^(\d+)\]:(.*)$/gm, '');
-            const plain = cleaned.replace(/\n/g, ' ');
-            const preview = plain.split(/\s+/).slice(0, 25).join(" ") + " …";
+            let rendered = md.render(entry.text || "");
+            if (query) {
+                try {
+                    const regex = new RegExp(query, "gi");
+                    rendered = rendered.replace(regex, (match) => `<span class="highlight">${match}</span>`);
+                } catch (e) {
+                    console.warn("Highlighting fehlgeschlagen:", e);
+                }
+            }
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
@@ -72,25 +76,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Zeit:</strong> ${entry.zeit} (${entry.zeit_kategorie})</p>
                 <p><strong>Typ:</strong> ${entry.typ}</p>
                 <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
-                <p><strong>Text:</strong>
-                    <span class="text-preview">${preview}</span>
-                    <button class="toggle-text">Mehr</button>
-                    <span class="text-full hidden">${rendered}</span>
-                </p>
+                <p><strong>Text:</strong><br>${rendered}</p>
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
 
             resultsContainer.appendChild(resultItem);
-
-            const toggleBtn = resultItem.querySelector(".toggle-text");
-            const previewEl = resultItem.querySelector(".text-preview");
-            const fullEl = resultItem.querySelector(".text-full");
-
-            toggleBtn.addEventListener("click", () => {
-                fullEl.classList.toggle("hidden");
-                previewEl.classList.toggle("hidden");
-                toggleBtn.textContent = fullEl.classList.contains("hidden") ? "Mehr" : "Weniger";
-            });
         });
     }
 
