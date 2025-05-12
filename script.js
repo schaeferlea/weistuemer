@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
     const md = window.markdownit().use(window.markdownitFootnote);
@@ -16,7 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const resetButton = document.getElementById("reset-search-btn");
 
     searchInput.addEventListener("input", performSearch);
-
     if (resetButton) {
         resetButton.addEventListener("click", () => {
             searchInput.value = "";
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let regex;
         try {
             regex = new RegExp(query, "i");
-        } catch (e) {
+        } catch {
             document.getElementById("results").innerHTML = "<p>⚠️ Ungültiger regulärer Ausdruck.</p>";
             return;
         }
@@ -42,14 +42,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 regex.test(typeof value === "object" ? JSON.stringify(value) : String(value))
             )
         );
-
         displayResults(filtered, query);
     }
 
     function displayResults(data, query = "") {
         const resultsContainer = document.getElementById("results");
         resultsContainer.innerHTML = "";
-
         if (!data.length) {
             resultsContainer.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
             return;
@@ -60,15 +58,11 @@ document.addEventListener("DOMContentLoaded", function () {
             resultItem.classList.add("result-item");
             resultItem.id = entry.id;
 
-            const htmlFull = md.render(entry.text || "");
-
-            // Vorschautext aus reinem Text (Markdown ungerendert)
-            const previewPlain = (entry.text || "")
-                .replace(/\[\^(\d+)\]/g, '') // Fußnotenzeichen raus
-                .replace(/\[\^(\d+)\]:.*$/gm, '') // Fußnotentext raus
-                .replace(/\n/g, ' ');
-            const words = previewPlain.split(/\s+/).filter(Boolean);
-            const shortText = words.slice(0, 20).join(" ") + (words.length > 20 ? " …" : "");
+            const rendered = md.render(entry.text || "");
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = rendered;
+            const plain = tempDiv.textContent || tempDiv.innerText || "";
+            const preview = plain.split(/\s+/).slice(0, 25).join(" ") + " …";
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
@@ -79,13 +73,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Typ:</strong> ${entry.typ}</p>
                 <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
                 <p><strong>Text:</strong>
-                    <span class="text-preview">${shortText}</span>
+                    <span class="text-preview">${preview}</span>
                     <button class="toggle-text">Mehr</button>
-                    <span class="text-full hidden">${htmlFull}</span>
+                    <span class="text-full hidden">${rendered}</span>
                 </p>
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
-
             resultsContainer.appendChild(resultItem);
 
             const toggleBtn = resultItem.querySelector(".toggle-text");
@@ -101,6 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function highlightText(text, query) {
+        if (!query) return text;
         try {
             const regex = new RegExp(query, "gi");
             return text.replace(regex, match => `<span class="highlight">${match}</span>`);
@@ -182,8 +176,50 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         const abschnittMatch = zeit.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/);
         if (abschnittMatch) {
-            return `${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} ${abschnittMatch[2]}. Jh.`;
+            return \`\${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} \${abschnittMatch[2]}. Jh.\`;
         }
         return "unbekannt";
+    }
+
+    document.getElementById("export-csv-btn").addEventListener("click", () => {
+        exportToCSV(dataset, "weistuemer_export.csv");
+    });
+
+    function exportToCSV(data, filename) {
+        const headers = ["id", "titel", "ort", "region", "zeit", "zeit_kategorie", "typ", "schreiberinfo", "text", "Fussnoten"];
+        const csvRows = [headers.join(",")];
+
+        data.forEach(entry => {
+            const inline = (entry.text || "").replace(/\[\^(\d+)\]/g, "[$1]");
+            const notes = [];
+            const cleanedText = inline.replace(/^\[\^(\d+)\]:(.*)$/gm, (match, num, txt) => {
+                notes.push(`${num}: ${txt.trim()}`);
+                return "";
+            }).replace(/\n/g, " ").trim();
+
+            const values = [
+                entry.id,
+                entry.titel,
+                entry.ort,
+                entry.region,
+                entry.zeit,
+                entry.zeit_kategorie,
+                entry.typ,
+                entry.schreiberinfo || "",
+                cleanedText.replace(/"/g, '""'),
+                notes.join(" | ").replace(/"/g, '""')
+            ];
+
+            const row = values.map(v => `"${v}"`).join(",");
+            csvRows.push(row);
+        });
+
+        const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 });
