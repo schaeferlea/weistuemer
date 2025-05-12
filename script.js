@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
     const md = window.markdownit().use(window.markdownitFootnote);
@@ -61,12 +60,15 @@ document.addEventListener("DOMContentLoaded", function () {
             resultItem.classList.add("result-item");
             resultItem.id = entry.id;
 
-            const fullHtml = md.render(entry.text || "");
+            const htmlFull = md.render(entry.text || "");
 
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = fullHtml;
-            const textOnly = tempDiv.textContent || tempDiv.innerText || "";
-            const previewText = textOnly.split(/\s+/).slice(0, 25).join(" ") + " …";
+            // Vorschautext aus reinem Text (Markdown ungerendert)
+            const previewPlain = (entry.text || "")
+                .replace(/\[\^(\d+)\]/g, '') // Fußnotenzeichen raus
+                .replace(/\[\^(\d+)\]:.*$/gm, '') // Fußnotentext raus
+                .replace(/\n/g, ' ');
+            const words = previewPlain.split(/\s+/).filter(Boolean);
+            const shortText = words.slice(0, 20).join(" ") + (words.length > 20 ? " …" : "");
 
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
@@ -77,9 +79,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Typ:</strong> ${entry.typ}</p>
                 <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
                 <p><strong>Text:</strong>
-                    <span class="text-preview">${previewText}</span>
+                    <span class="text-preview">${shortText}</span>
                     <button class="toggle-text">Mehr</button>
-                    <span class="text-full hidden">${fullHtml}</span>
+                    <span class="text-full hidden">${htmlFull}</span>
                 </p>
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
@@ -180,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         const abschnittMatch = zeit.match(/(anfang|mitte|ende)\s*(\d{1,2})\.\s*jh/);
         if (abschnittMatch) {
-            return \`\${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} \${abschnittMatch[2]}. Jh.\`;
+            return `${abschnittMatch[1][0].toUpperCase() + abschnittMatch[1].slice(1)} ${abschnittMatch[2]}. Jh.`;
         }
         return "unbekannt";
     }
