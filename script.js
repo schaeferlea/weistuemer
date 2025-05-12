@@ -69,7 +69,8 @@ document.addEventListener("DOMContentLoaded", function () {
             let renderedText = md.render(entry.text || "");
             let highlightedText = highlightText(renderedText, query);
             let shortText = shortenText(entry.text);
-
+            let inlineText = entry.text.replace(/\[\^(\d+)\]/g, '[$1]');
+            
             resultItem.innerHTML = `
                 <h3>${entry.titel}</h3>
                 <p><strong>Edition:</strong> ${entry.edition.stelle}</p>
