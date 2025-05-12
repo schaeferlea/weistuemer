@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function displayResults(data, query = "") {
         const resultsContainer = document.getElementById("results");
         resultsContainer.innerHTML = "";
+
         if (!data.length) {
             resultsContainer.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
             return;
@@ -59,9 +60,10 @@ document.addEventListener("DOMContentLoaded", function () {
             resultItem.id = entry.id;
 
             const rendered = md.render(entry.text || "");
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = rendered;
-            const plain = tempDiv.textContent || tempDiv.innerText || "";
+
+            // Nur für Vorschau: reiner Text, Fußnoten raus
+            const cleaned = (entry.text || "").replace(/\[\^(\d+)\]/g, '').replace(/\[\^(\d+)\]:(.*)$/gm, '');
+            const plain = cleaned.replace(/\n/g, ' ');
             const preview = plain.split(/\s+/).slice(0, 25).join(" ") + " …";
 
             resultItem.innerHTML = `
@@ -79,6 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 </p>
                 ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
             `;
+
             resultsContainer.appendChild(resultItem);
 
             const toggleBtn = resultItem.querySelector(".toggle-text");
@@ -91,16 +94,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 toggleBtn.textContent = fullEl.classList.contains("hidden") ? "Mehr" : "Weniger";
             });
         });
-    }
-
-    function highlightText(text, query) {
-        if (!query) return text;
-        try {
-            const regex = new RegExp(query, "gi");
-            return text.replace(regex, match => `<span class="highlight">${match}</span>`);
-        } catch {
-            return text;
-        }
     }
 
     function populateDropdowns(data) {
@@ -131,7 +124,6 @@ document.addEventListener("DOMContentLoaded", function () {
             (region === "" || entry.region === region) &&
             (zeit === "" || entry.zeit_kategorie === zeit)
         );
-
         displayResults(filtered);
     }
 
@@ -181,6 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return "unbekannt";
     }
 
+    // CSV Export
     document.getElementById("export-csv-btn").addEventListener("click", () => {
         exportToCSV(dataset, "weistuemer_export.csv");
     });
@@ -190,14 +183,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const csvRows = [headers.join(",")];
 
         data.forEach(entry => {
-            const inline = (entry.text || "").replace(/\[\^(\d+)\]/g, "[$1]");
+            const raw = entry.text || "";
+            const inline = raw.replace(/\[\^(\d+)\]/g, "[$1]");
             const notes = [];
-            const cleanedText = inline.replace(/^\[\^(\d+)\]:(.*)$/gm, (match, num, txt) => {
+            const textClean = inline.replace(/^\[\^(\d+)\]:(.*)$/gm, (match, num, txt) => {
                 notes.push(`${num}: ${txt.trim()}`);
                 return "";
             }).replace(/\n/g, " ").trim();
 
-            const values = [
+            const row = [
                 entry.id,
                 entry.titel,
                 entry.ort,
@@ -206,11 +200,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 entry.zeit_kategorie,
                 entry.typ,
                 entry.schreiberinfo || "",
-                cleanedText.replace(/"/g, '""'),
+                textClean.replace(/"/g, '""'),
                 notes.join(" | ").replace(/"/g, '""')
-            ];
+            ].map(v => `"${v}"`).join(",");
 
-            const row = values.map(v => `"${v}"`).join(",");
             csvRows.push(row);
         });
 
