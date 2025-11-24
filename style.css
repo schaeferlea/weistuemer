@@ -4,6 +4,12 @@ body {
     padding: 0;
 }
 
+h2 {
+  font-size: 1.4rem; 
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+}
+
 header {
     background-color: #4478A8;
     color: white;
