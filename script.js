@@ -1,5 +1,9 @@
 document.addEventListener("DOMContentLoaded", function () {
     let dataset = [];
+    // Globale Variablen für Karte und Marker-Gruppe
+    let map;
+    let markers = L.markerClusterGroup(); // Marker Cluster Group für bessere Performance
+
     const md = window.markdownit({ html: true }).use(window.markdownitFootnote);
 
     fetch("data.json")
@@ -9,13 +13,19 @@ document.addEventListener("DOMContentLoaded", function () {
             kategorisiereAlleZeiten(dataset);
             populateDropdowns(dataset);
             displayResults(dataset);
-            initializeMap(dataset);
+            initializeMap(dataset); // Initialisiert die Karte mit allen Daten
         });
 
     const searchInput = document.getElementById("search-input");
     const resetButton = document.getElementById("reset-search-btn");
-
+    
+    // Event-Listener für Sucheingabe und Filter
     searchInput.addEventListener("input", performSearch);
+    document.getElementById("filter-typ").addEventListener("change", performSearch);
+    document.getElementById("filter-region").addEventListener("change", performSearch);
+    document.getElementById("filter-zeit").addEventListener("change", performSearch);
+
+
     if (resetButton) {
         resetButton.addEventListener("click", () => {
             searchInput.value = "";
@@ -26,158 +36,287 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function performSearch() {
-        const query = searchInput.value.trim();
+    // Export-Button (beibehalten)
+    document.getElementById("export-csv-btn").addEventListener("click", () => {
+        // Filtere aktuelle Ergebnisse, um nur die angezeigten zu exportieren
+        const currentQuery = searchInput.value.trim();
+        const filterTyp = document.getElementById("filter-typ").value;
+        const filterRegion = document.getElementById("filter-region").value;
+        const filterZeit = document.getElementById("filter-zeit").value;
+        
         let regex;
         try {
+            regex = new RegExp(currentQuery, "i");
+        } catch {
+            // Bei ungültigem Regex leeres Array exportieren
+            exportToCSV([], "weistuemer_export.csv");
+            return;
+        }
+
+        const filteredForExport = dataset.filter(entry => {
+            const matchesQuery = Object.values(entry).some(value =>
+                regex.test(typeof value === "object" ? JSON.stringify(value) : String(value))
+            );
+            const matchesTyp = !filterTyp || entry.typ === filterTyp;
+            const matchesRegion = !filterRegion || entry.region === filterRegion;
+            const matchesZeit = !filterZeit || entry.zeit_kategorie === filterZeit;
+            return matchesQuery && matchesTyp && matchesRegion && matchesZeit;
+        });
+
+        exportToCSV(filteredForExport, "weistuemer_export.csv");
+    });
+    
+    // =========================================================
+    // KARTEN-FUNKTIONEN (NEU/ÜBERARBEITET)
+    // =========================================================
+    
+    function initializeMap(data) {
+        // Entfernt die alte Karte, falls sie existiert (wichtig für Entwicklungszwecke)
+        if (map) {
+            map.remove();
+        }
+
+        // Initialisierung der Leaflet-Karte
+        // Standard-Zentrum (Deutschland/Schweiz) und Zoom
+        map = L.map('map').setView([49.0, 9.0], 6);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap-Mitwirkende'
+        }).addTo(map);
+
+        // Marker-Gruppe zur Karte hinzufügen
+        markers.clearLayers();
+        map.addLayer(markers);
+        
+        // Füge die initialen Marker hinzu
+        updateMapMarkers(data);
+
+        // Klick-Event für die Karte: Setzt den Filter zurück, wenn auf die leere Karte geklickt wird
+        map.on('click', () => {
+            // Optional: Wenn ein Klick außerhalb eines Markers passiert, Filter zurücksetzen
+            // Nur machen, wenn es gewünscht ist:
+            // document.getElementById("search-input").value = "";
+            // document.getElementById("filter-typ").value = "";
+            // document.getElementById("filter-region").value = "";
+            // document.getElementById("filter-zeit").value = "";
+            // performSearch();
+        });
+    }
+    
+    /**
+     * Aktualisiert die Marker auf der Karte basierend auf den gefilterten Daten.
+     * @param {Array} filteredData - Die Array der Weistümer, die angezeigt werden sollen.
+     */
+    function updateMapMarkers(filteredData) {
+        // 1. Alle alten Marker entfernen
+        markers.clearLayers();
+
+        // 2. Neue Marker hinzufügen
+        filteredData.forEach(entry => {
+            if (entry.koordinaten && entry.koordinaten.lat && entry.koordinaten.lng) {
+                
+                // Popup-Text für den Marker erstellen
+                const popupText = `
+                    <b>${entry.titel}</b><br>
+                    Ort: ${entry.ort}<br>
+                    Zeit: ${entry.zeit || 'Unbekannt'}<br>
+                    Typ: ${entry.typ || 'Unbekannt'}<br>
+                    <button onclick="window.filterByLocation('${entry.ort.replace(/'/g, "\\'")}')" style="margin-top: 5px; cursor: pointer;">Nur diesen Ort anzeigen</button>
+                `;
+
+                // Marker erstellen
+                const marker = L.marker([entry.koordinaten.lat, entry.koordinaten.lng]);
+                
+                // Popup binden
+                marker.bindPopup(popupText);
+                
+                // Marker zur Marker-Gruppe hinzufügen
+                markers.addLayer(marker);
+            }
+        });
+
+        // 3. Karte auf die Marker zentrieren (optional)
+        if (markers.getLayers().length > 0) {
+            // Berechne die Begrenzungen der Marker und passe die Ansicht an
+            // maxZoom: 10, um nicht zu stark hineinzuzoomen, wenn nur ein Marker existiert
+            map.fitBounds(markers.getBounds(), { padding: [50, 50], maxZoom: 10 }); 
+        } else {
+            // Wenn keine Ergebnisse, kehre zur Standardansicht zurück
+            map.setView([49.0, 9.0], 6);
+        }
+    }
+    
+    // Globale Funktion, die vom Marker-Popup aufgerufen wird
+    window.filterByLocation = function(locationName) {
+        // Setzt den Such-Input auf den Ort und führt die Suche durch
+        document.getElementById("search-input").value = `\\b${locationName}\\b`; // Sucht exakt nach dem Wort
+        document.getElementById("filter-typ").value = "";
+        document.getElementById("filter-region").value = "";
+        document.getElementById("filter-zeit").value = "";
+        performSearch();
+    };
+
+    // =========================================================
+    // HAUPTSUCHFUNKTION (ÜBERARBEITET)
+    // =========================================================
+    
+    function performSearch() {
+        const query = searchInput.value.trim();
+        const filterTyp = document.getElementById("filter-typ").value;
+        const filterRegion = document.getElementById("filter-region").value;
+        const filterZeit = document.getElementById("filter-zeit").value;
+
+        let regex;
+        try {
+            // RegEx für die Freitextsuche
             regex = new RegExp(query, "i");
         } catch {
             document.getElementById("results").innerHTML = "<p>⚠️ Ungültiger regulärer Ausdruck.</p>";
+            // Wichtig: Auch die Karte muss aktualisiert werden
+            updateMapMarkers([]); 
             return;
         }
 
-        const filtered = dataset.filter(entry =>
-            Object.values(entry).some(value =>
+        const filtered = dataset.filter(entry => {
+            // 1. Freitextsuche
+            const matchesQuery = Object.values(entry).some(value =>
                 regex.test(typeof value === "object" ? JSON.stringify(value) : String(value))
-            )
-        );
-        displayResults(filtered, query);
+            );
+
+            // 2. Filter-Überprüfung
+            const matchesTyp = !filterTyp || entry.typ === filterTyp;
+            const matchesRegion = !filterRegion || entry.region === filterRegion;
+            const matchesZeit = !filterZeit || entry.zeit_kategorie === filterZeit;
+
+            return matchesQuery && matchesTyp && matchesRegion && matchesZeit;
+        });
+
+        // Die Karte mit den gefilterten Ergebnissen aktualisieren
+        updateMapMarkers(filtered);
+        
+        // Die Ergebnisse unter der Karte anzeigen
+        displayResults(filtered);
     }
+    
+    // =========================================================
+    // RESTLICHE HELFERFUNKTIONEN (BEIBEHALTEN)
+    // =========================================================
 
-    function displayResults(data, query = "") {
-        const resultsContainer = document.getElementById("results");
-        resultsContainer.innerHTML = "";
-
-        if (!data.length) {
-            resultsContainer.innerHTML = "<p>Keine Ergebnisse gefunden.</p>";
-            return;
-        }
+    function displayResults(data) {
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = `<p>Gefundene Einträge: <b>${data.length}</b></p>`;
 
         data.forEach(entry => {
             const resultItem = document.createElement("div");
-            resultItem.classList.add("result-item");
-            resultItem.id = entry.id;
-
-            let rendered = md.render(entry.text || "");
-            if (query) {
-                try {
-                    const regex = new RegExp(query, "gi");
-                    rendered = rendered.replace(regex, (match) => `<span class="highlight">${match}</span>`);
-                } catch (e) {
-                    console.warn("Highlighting fehlgeschlagen:", e);
-                }
-            }
-
-            resultItem.innerHTML = `
-                <h3>${entry.titel}</h3>
-                <p><strong>Edition:</strong> ${entry.edition?.stelle || "-"}</p>
-                <p><strong>Ort:</strong> ${entry.ort}</p>
-                <p><strong>Region:</strong> ${entry.region}</p>
-                <p><strong>Zeit:</strong> ${entry.zeit} (${entry.zeit_kategorie})</p>
-                <p><strong>Typ:</strong> ${entry.typ}</p>
-                <p><strong>Schreiberinfo:</strong> ${entry.schreiberinfo || "-"}</p>
-                <p><strong>Text:</strong><br>${rendered}</p>
-                ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ""}
+            resultItem.className = "result-item";
+            
+            const markdownText = entry.text || "";
+            const htmlText = md.render(markdownText);
+            
+            const detailHtml = `
+                <div class="result-header">
+                    <h3>${entry.titel}</h3>
+                    <p>
+                        Ort: <b>${entry.ort || 'N/A'}</b> | 
+                        Region: <b>${entry.region || 'N/A'}</b> | 
+                        Zeit: <b>${entry.zeit || 'N/A'}</b> |
+                        Typ: <b>${entry.typ || 'N/A'}</b>
+                    </p>
+                </div>
+                <div class="result-body">
+                    ${htmlText}
+                </div>
+                <div class="result-details">
+                    ${entry.edition && entry.edition.stelle ? `<p>Quelle: ${entry.edition.stelle}</p>` : ''}
+                    ${entry.edition && entry.edition.notizen ? `<p>Anmerkungen: ${entry.edition.notizen}</p>` : ''}
+                    ${entry.schreiberinfo ? `<p>Schreiberinfo: ${entry.schreiberinfo}</p>` : ''}
+                    ${entry.original_link ? `<p><a href="${entry.original_link}" target="_blank">Original-Link</a></p>` : ''}
+                </div>
             `;
-
-            resultsContainer.appendChild(resultItem);
+            resultItem.innerHTML = detailHtml;
+            resultsDiv.appendChild(resultItem);
         });
     }
 
     function populateDropdowns(data) {
-        populateDropdown("filter-typ", data.map(d => d.typ));
-        populateDropdown("filter-region", data.map(d => d.region));
-        populateDropdown("filter-zeit", data.map(d => d.zeit_kategorie));
-    }
-
-    function populateDropdown(id, values) {
-        const dropdown = document.getElementById(id);
-        if (!dropdown) return;
-        [...new Set(values)].sort().forEach(val => {
-            const opt = document.createElement("option");
-            opt.value = val;
-            opt.textContent = val;
-            dropdown.appendChild(opt);
-        });
-        dropdown.addEventListener("change", filterResults);
-    }
-
-    function filterResults() {
-        const typ = document.getElementById("filter-typ").value;
-        const region = document.getElementById("filter-region").value;
-        const zeit = document.getElementById("filter-zeit").value;
-
-        const filtered = dataset.filter(entry =>
-            (typ === "" || entry.typ === typ) &&
-            (region === "" || entry.region === region) &&
-            (zeit === "" || entry.zeit_kategorie === zeit)
-        );
-        displayResults(filtered);
-    }
-
-    function initializeMap(data) {
-        const map = L.map('map').setView([49.0, 9.5], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        const typSet = new Set();
+        const regionSet = new Set();
+        const zeitSet = new Set();
 
         data.forEach(entry => {
-            if (entry.koordinaten?.lat && entry.koordinaten?.lng) {
-                const marker = L.marker([entry.koordinaten.lat, entry.koordinaten.lng]).addTo(map);
-                marker.on('click', () => {
-                    const target = document.getElementById(entry.id);
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        document.querySelectorAll('.result-item').forEach(el => el.classList.remove('highlight-entry'));
-                        target.classList.add('highlight-entry');
-                        setTimeout(() => target.classList.remove('highlight-entry'), 3000);
-                    }
-                });
-            }
+            if (entry.typ) typSet.add(entry.typ);
+            if (entry.region) regionSet.add(entry.region);
+            if (entry.zeit_kategorie) zeitSet.add(entry.zeit_kategorie);
         });
+
+        populateDropdown("filter-typ", typSet);
+        populateDropdown("filter-region", regionSet);
+        populateDropdown("filter-zeit", zeitSet);
     }
 
-    function kategorisiereAlleZeiten(dataset) {
-        dataset.forEach(entry => {
+    function populateDropdown(elementId, set) {
+        const select = document.getElementById(elementId);
+        const placeholder = select.querySelector('option[value=""]').textContent;
+        select.innerHTML = `<option value="">${placeholder}</option>`; // Placeholder beibehalten
+
+        Array.from(set).sort().forEach(item => {
+            const option = document.createElement("option");
+            option.value = item;
+            option.textContent = item;
+            select.appendChild(option);
+        });
+    }
+    
+    // Fügt eine neue Kategorie 'zeit_kategorie' basierend auf dem 'zeit'-Feld hinzu
+    function kategorisiereAlleZeiten(data) {
+        data.forEach(entry => {
             entry.zeit_kategorie = kategorisiereZeit(entry.zeit);
         });
     }
 
-    function kategorisiereZeit(rawZeit) {
-        if (!rawZeit || typeof rawZeit !== "string") return "unbekannt";
-        const zeit = rawZeit.toLowerCase();
-        const jahrMatch = zeit.match(/(\d{3,4})/);
+    function kategorisiereZeit(zeitString) {
+        if (!zeitString) return "Unbekannt";
+
+        const jahrMatch = zeitString.match(/(\d{4})/);
         if (jahrMatch) {
-            const jahr = parseInt(jahrMatch[1]);
-            const jahrhundert = Math.floor((jahr - 1) / 100) + 1;
-            const mod = jahr % 100;
-            const abschnitt = mod <= 33 ? "Anfang" : mod <= 66 ? "Mitte" : "Ende";
-            return `${abschnitt} ${jahrhundert}. Jh.`;
+            const jahr = parseInt(jahrMatch[1], 10);
+
+            if (jahr >= 1100 && jahr < 1300) return "Hochmittelalter (12.-13. Jh.)";
+            if (jahr >= 1300 && jahr < 1400) return "Spätmittelalter (14. Jh.)";
+            if (jahr >= 1400 && jahr < 1500) return "Spätmittelalter (15. Jh.)";
+            if (jahr >= 1500 && jahr < 1600) return "Frühe Neuzeit (16. Jh.)";
+            
+            // Behandle ungefähre Angaben, die das Jahrhundert implizieren
+        } else if (zeitString.toLowerCase().includes("13. jh")) {
+             return "Hochmittelalter (12.-13. Jh.)";
+        } else if (zeitString.toLowerCase().includes("14. jh")) {
+            return "Spätmittelalter (14. Jh.)";
+        } else if (zeitString.toLowerCase().includes("15. jh")) {
+            return "Spätmittelalter (15. Jh.)";
+        } else if (zeitString.toLowerCase().includes("16. jh")) {
+            return "Frühe Neuzeit (16. Jh.)";
         }
-        const abschnittMatch = rawZeit.match(/(Anfang|Mitte|Ende)\s*(\d{1,2})\.\s*Jh\./i);
-        if (abschnittMatch) {
-            const abschnitt = abschnittMatch[1].toLowerCase();
-            return `${abschnitt[0].toUpperCase()}${abschnitt.slice(1)} ${abschnittMatch[2]}. Jh.`;
-        }
-        return "unbekannt";
+
+        return "Sonstige/Ungefähre Angaben";
     }
 
-    document.getElementById("export-csv-btn").addEventListener("click", () => {
-        exportToCSV(dataset, "weistuemer_export.csv");
-    });
-
     function exportToCSV(data, filename) {
-        const headers = ["id", "titel", "ort", "region", "zeit", "zeit_kategorie", "typ", "schreiberinfo", "text", "Fussnoten"];
+        const headers = [
+            "id", "titel", "ort", "region", "zeit", "zeit_kategorie", "typ", 
+            "koordinaten_lat", "koordinaten_lng", "schreiberinfo", "text", "Fussnoten", 
+            "edition_stelle", "edition_notizen", "original_link"
+        ];
         const csvRows = [headers.join(",")];
 
         data.forEach(entry => {
+            // Textbereinigung für den Export (entfernt Markdown-Fußnoten und Zeilenumbrüche)
             const raw = entry.text || "";
-            const inline = raw.replace(/\[\^(\d+)\]/g, "[$1]");
+            const inline = raw.replace(/\\[\\^(\\d+)\\]/g, "[$1]");
             const notes = [];
-            const textClean = inline.replace(/^\[\^(\d+)\]:(.*)$/gm, (match, num, txt) => {
+            const textClean = inline.replace(/^\\[\\^(\\d+)\\]:(.*)$/gm, (match, num, txt) => {
                 notes.push(`${num}: ${txt.trim()}`);
                 return "";
-            }).replace(/\n/g, " ").trim();
+            }).replace(/\\n/g, " ").trim();
 
             const row = [
                 entry.id,
@@ -187,18 +326,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 entry.zeit,
                 entry.zeit_kategorie,
                 entry.typ,
+                entry.koordinaten ? entry.koordinaten.lat : "",
+                entry.koordinaten ? entry.koordinaten.lng : "",
                 entry.schreiberinfo || "",
-                textClean.replace(/"/g, '""'),
-                notes.join(" | ").replace(/"/g, '""')
-            ].map(v => `"${v}"`).join(",");
+                textClean.replace(/\"/g, '\"\"'), // Escape Anführungszeichen
+                notes.join(" | ").replace(/\"/g, '\"\"'),
+                entry.edition ? entry.edition.stelle : "",
+                entry.edition ? entry.edition.notizen.replace(/\"/g, '\"\"') : "",
+                entry.original_link || ""
+            ].map(v => `"${v}"`).join(","); // Alle Werte in Anführungszeichen setzen
 
             csvRows.push(row);
         });
 
-        const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+        // Erzeugt eine CSV-Datei und löst den Download aus
+        const blob = new Blob(["\\uFEFF" + csvRows.join("\\n")], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", filename);
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
