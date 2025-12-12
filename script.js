@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     
     // =========================================================
-    // KARTEN-FUNKTIONEN (NEU/ÜBERARBEITET)
+    // KARTEN-FUNKTIONEN
     // =========================================================
     
     function initializeMap(data) {
@@ -93,13 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Klick-Event für die Karte: Setzt den Filter zurück, wenn auf die leere Karte geklickt wird
         map.on('click', () => {
-            // Optional: Wenn ein Klick außerhalb eines Markers passiert, Filter zurücksetzen
-            // Nur machen, wenn es gewünscht ist:
-            // document.getElementById("search-input").value = "";
-            // document.getElementById("filter-typ").value = "";
-            // document.getElementById("filter-region").value = "";
-            // document.getElementById("filter-zeit").value = "";
-            // performSearch();
+            // Optionale Funktion, derzeit auskommentiert
         });
     }
     
@@ -157,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     // =========================================================
-    // HAUPTSUCHFUNKTION (ÜBERARBEITET)
+    // HAUPTSUCHFUNKTION
     // =========================================================
     
     function performSearch() {
@@ -199,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     // =========================================================
-    // RESTLICHE HELFERFUNKTIONEN (BEIBEHALTEN)
+    // RESTLICHE HELFERFUNKTIONEN
     // =========================================================
 
     function displayResults(data) {
@@ -259,7 +253,21 @@ document.addEventListener("DOMContentLoaded", function () {
         const placeholder = select.querySelector('option[value=""]').textContent;
         select.innerHTML = `<option value="">${placeholder}</option>`; // Placeholder beibehalten
 
-        Array.from(set).sort().forEach(item => {
+        // Sortiert die Zeitkategorien korrekt (numerisch)
+        const sortedArray = Array.from(set).sort((a, b) => {
+            // Extrahiert die erste Zahl (Startjahr) für den Vergleich
+            const yearA = parseInt(a.match(/(\d+)/), 10) || Infinity;
+            const yearB = parseInt(b.match(/(\d+)/), 10) || Infinity;
+            
+            // Stellt sicher, dass "Unbekannt" oder "Sonstige" am Ende stehen
+            if (isNaN(yearA) && isNaN(yearB)) return a.localeCompare(b);
+            if (isNaN(yearA)) return 1;
+            if (isNaN(yearB)) return -1;
+            
+            return yearA - yearB;
+        });
+
+        sortedArray.forEach(item => {
             const option = document.createElement("option");
             option.value = item;
             option.textContent = item;
@@ -274,31 +282,47 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    /**
+     * Kategorisiert eine Zeitangabe in 50-Jahres-Intervalle basierend auf einer gefundenen Jahreszahl.
+     * @param {string} zeitString - Die originale Zeitangabe (z.B. "vor 1493" oder "Ende 13. Jh.").
+     * @returns {string} - Die neue Zeitkategorie (z.B. "1450 - 1499").
+     */
     function kategorisiereZeit(zeitString) {
         if (!zeitString) return "Unbekannt";
 
+        // 1. Versucht, eine vierstellige Zahl zu finden (als Jahr)
         const jahrMatch = zeitString.match(/(\d{4})/);
-        if (jahrMatch) {
-            const jahr = parseInt(jahrMatch[1], 10);
 
-            if (jahr >= 1100 && jahr < 1300) return "Hochmittelalter (12.-13. Jh.)";
-            if (jahr >= 1300 && jahr < 1400) return "Spätmittelalter (14. Jh.)";
-            if (jahr >= 1400 && jahr < 1500) return "Spätmittelalter (15. Jh.)";
-            if (jahr >= 1500 && jahr < 1600) return "Frühe Neuzeit (16. Jh.)";
+        if (jahrMatch) {
+            let jahr = parseInt(jahrMatch[1], 10);
             
-            // Behandle ungefähre Angaben, die das Jahrhundert implizieren
-        } else if (zeitString.toLowerCase().includes("13. jh")) {
-             return "Hochmittelalter (12.-13. Jh.)";
-        } else if (zeitString.toLowerCase().includes("14. jh")) {
-            return "Spätmittelalter (14. Jh.)";
-        } else if (zeitString.toLowerCase().includes("15. jh")) {
-            return "Spätmittelalter (15. Jh.)";
-        } else if (zeitString.toLowerCase().includes("16. jh")) {
-            return "Frühe Neuzeit (16. Jh.)";
+            // Hauptbereich: 1100 bis 1599 (kann bei Bedarf angepasst werden)
+            if (jahr >= 1100 && jahr < 1600) {
+                // Berechne den Anfang des 50-Jahres-Intervalls
+                // Bsp.: 1475 wird zu 1450. 1450/50=29. Math.floor(29)*50 = 1450.
+                const startJahr = Math.floor(jahr / 50) * 50;
+                const endJahr = startJahr + 49;
+                return `${startJahr} - ${endJahr}`;
+            }
+
+            // Für Jahre außerhalb des Hauptbereichs
+            if (jahr < 1100) return "Vor 1100";
+            if (jahr >= 1600) return "Ab 1600";
+            // Rückfall, falls die Zahl gefunden wurde, aber außerhalb des erwarteten Bereichs
+            return `Jahr: ${jahr}`; 
         }
 
-        return "Sonstige/Ungefähre Angaben";
+        // 2. Fallback für ungefähre Angaben ohne klare Jahreszahl (z.B. "Ende 13. Jh.")
+        const lowerZeit = zeitString.toLowerCase();
+        
+        if (lowerZeit.includes("13. jh")) return "ca. 1200 - 1299";
+        if (lowerZeit.includes("14. jh")) return "ca. 1300 - 1399";
+        if (lowerZeit.includes("15. jh")) return "ca. 1400 - 1499";
+        if (lowerZeit.includes("16. jh")) return "ca. 1500 - 1599";
+        
+        return "Ungefähre Angabe/Sonstige";
     }
+
 
     function exportToCSV(data, filename) {
         const headers = [
