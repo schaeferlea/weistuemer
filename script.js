@@ -247,24 +247,44 @@ document.addEventListener("DOMContentLoaded", function () {
         populateDropdown("filter-region", regionSet);
         populateDropdown("filter-zeit", zeitSet);
     }
+    
+    /**
+     * Erstellt einen Sortierrang basierend auf Jahrhundert und Periode (Anfang/Mitte/Ende).
+     * @param {string} category - Die Zeitkategorie (z.B. "Ende 13. Jh.").
+     * @returns {number} - Der numerische Rang (z.B. 133 für Ende 13. Jh.).
+     */
+    function getSortRank(category) {
+        // Versucht, die Jahrhundertzahl (z.B. 13) zu extrahieren
+        const centuryMatch = category.match(/(\d{2})\.\s*Jh/);
+        const century = centuryMatch ? parseInt(centuryMatch[1], 10) : 99; // Standard 99 für Unbekannt/Sonstige
+        
+        let periodRank = 0;
+        if (category.includes("Anfang")) periodRank = 1;
+        else if (category.includes("Mitte")) periodRank = 2;
+        else if (category.includes("Ende")) periodRank = 3;
+
+        // Erzeugt einen kombinierten Rang: Jahrhundert * 10 + Perioden-Rang
+        // Bsp: Anfang 13. Jh. = 131, Mitte 13. Jh. = 132
+        return century * 10 + periodRank;
+    }
+
 
     function populateDropdown(elementId, set) {
         const select = document.getElementById(elementId);
         const placeholder = select.querySelector('option[value=""]').textContent;
         select.innerHTML = `<option value="">${placeholder}</option>`; // Placeholder beibehalten
 
-        // Sortiert die Zeitkategorien korrekt (numerisch)
+        // Sortiert die Zeitkategorien nach dem neuen Ranking
         const sortedArray = Array.from(set).sort((a, b) => {
-            // Extrahiert die erste Zahl (Startjahr) für den Vergleich
-            const yearA = parseInt(a.match(/(\d+)/), 10) || Infinity;
-            const yearB = parseInt(b.match(/(\d+)/), 10) || Infinity;
+            const rankA = getSortRank(a);
+            const rankB = getSortRank(b);
+
+            // Spezialbehandlung für "Unbekannt" (Rank 990) und andere Randfälle
+            if (rankA > 900 && rankB > 900) return a.localeCompare(b);
+            if (rankA > 900) return 1;
+            if (rankB > 900) return -1;
             
-            // Stellt sicher, dass "Unbekannt" oder "Sonstige" am Ende stehen
-            if (isNaN(yearA) && isNaN(yearB)) return a.localeCompare(b);
-            if (isNaN(yearA)) return 1;
-            if (isNaN(yearB)) return -1;
-            
-            return yearA - yearB;
+            return rankA - rankB;
         });
 
         sortedArray.forEach(item => {
@@ -283,44 +303,66 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /**
-     * Kategorisiert eine Zeitangabe in 50-Jahres-Intervalle basierend auf einer gefundenen Jahreszahl.
+     * Kategorisiert eine Zeitangabe in "Anfang/Mitte/Ende [Jahrhundert]".
      * @param {string} zeitString - Die originale Zeitangabe (z.B. "vor 1493" oder "Ende 13. Jh.").
-     * @returns {string} - Die neue Zeitkategorie (z.B. "1450 - 1499").
+     * @returns {string} - Die neue Zeitkategorie (z.B. "Ende 15. Jh.").
      */
     function kategorisiereZeit(zeitString) {
         if (!zeitString) return "Unbekannt";
 
+        const lowerZeit = zeitString.toLowerCase();
+        let jahr = null;
+        let century;
+        let centuryName;
+
         // 1. Versucht, eine vierstellige Zahl zu finden (als Jahr)
-        const jahrMatch = zeitString.match(/(\d{4})/);
+        const jahrMatch = lowerZeit.match(/(\d{4})/);
 
         if (jahrMatch) {
-            let jahr = parseInt(jahrMatch[1], 10);
+            jahr = parseInt(jahrMatch[1], 10);
             
-            // Hauptbereich: 1100 bis 1599 (kann bei Bedarf angepasst werden)
-            if (jahr >= 1100 && jahr < 1600) {
-                // Berechne den Anfang des 50-Jahres-Intervalls
-                // Bsp.: 1475 wird zu 1450. 1450/50=29. Math.floor(29)*50 = 1450.
-                const startJahr = Math.floor(jahr / 50) * 50;
-                const endJahr = startJahr + 49;
-                return `${startJahr} - ${endJahr}`;
-            }
-
-            // Für Jahre außerhalb des Hauptbereichs
+            // Setzt einen vernünftigen Rahmen für die Kategorisierung
             if (jahr < 1100) return "Vor 1100";
             if (jahr >= 1600) return "Ab 1600";
-            // Rückfall, falls die Zahl gefunden wurde, aber außerhalb des erwarteten Bereichs
-            return `Jahr: ${jahr}`; 
+
+            century = Math.ceil(jahr / 100);
+            centuryName = `${century}. Jh.`;
+
+            const startOfPreviousCentury = (century - 1) * 100;
+            const centennialPart = jahr - startOfPreviousCentury; // Bsp: 1475 -> 75
+
+            // Dreiteilung des Jahrhunderts (ca. 33/34/33 Jahre)
+            if (centennialPart >= 0 && centennialPart <= 32) {
+                return `Anfang ${centuryName}`; 
+            } else if (centennialPart >= 33 && centennialPart <= 66) {
+                return `Mitte ${centuryName}`; 
+            } else { // 67 to 99
+                return `Ende ${centuryName}`; 
+            }
         }
 
-        // 2. Fallback für ungefähre Angaben ohne klare Jahreszahl (z.B. "Ende 13. Jh.")
-        const lowerZeit = zeitString.toLowerCase();
+        // 2. Fallback für ungefähre Angaben (z.B. "Ende 13. Jh.")
         
-        if (lowerZeit.includes("13. jh")) return "ca. 1200 - 1299";
-        if (lowerZeit.includes("14. jh")) return "ca. 1300 - 1399";
-        if (lowerZeit.includes("15. jh")) return "ca. 1400 - 1499";
-        if (lowerZeit.includes("16. jh")) return "ca. 1500 - 1599";
+        // Match "13. jh.", "14. jh.", etc.
+        const centuryMatch = lowerZeit.match(/(\d{2})\.\s*jh/); 
+        if (centuryMatch) {
+            century = parseInt(centuryMatch[1], 10);
+            centuryName = `${century}. Jh.`;
+            
+            if (lowerZeit.includes("anfang") || lowerZeit.includes("beginn")) {
+                return `Anfang ${centuryName}`;
+            } else if (lowerZeit.includes("mitte")) {
+                return `Mitte ${centuryName}`;
+            } else if (lowerZeit.includes("ende")) {
+                return `Ende ${centuryName}`;
+            } else {
+                // Wenn nur "13. Jh." ohne Präzisierung gegeben ist
+                return `Mitte ${centuryName} (ungefähr)`;
+            }
+        }
         
-        return "Ungefähre Angabe/Sonstige";
+        // 3. Genereller Fallback
+        return "Sonstige/Ungefähre Angabe";
     }
 
 
