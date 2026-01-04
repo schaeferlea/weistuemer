@@ -12,7 +12,6 @@
             h1 { color: #2c3e50; font-size: 2.5em; margin: 0; }
             h2 { color: #7f8c8d; font-weight: 300; margin-top: 10px; }
             
-            /* Daten-Header */
             .data-header { background: #34495e; color: white; padding: 15px 25px; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 1.1em; letter-spacing: 0.5px; text-transform: uppercase; }
             .data-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #ecf0f1; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; margin-bottom: 40px; }
             .stat-card { background: white; padding: 25px; text-align: center; }
@@ -29,11 +28,21 @@
             .card h4 { margin: 0 0 15px 0; color: #34495e; font-size: 1.1em; border-bottom: 2px solid #f4f7f6; padding-bottom: 10px; }
             .card img { width: 100%; height: auto; border-radius: 5px; }
             
-            /* Statistik Footer */
+            .full-width-card { 
+                grid-column: 1 / -1; 
+                background: #fff; border: 1px solid #eee; padding: 25px; border-radius: 10px; margin-top: 30px;
+                display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: center;
+            }
+            .full-width-card img { width: 100%; height: auto; border-radius: 5px; border: 1px solid #eee; }
+            
+            .corr-box { background: #f9f9f9; padding: 20px; border-radius: 5px; font-size: 0.9em; font-family: monospace; border: 1px solid #ddd; height: fit-content; }
+            .corr-val { color: #d35400; font-weight: bold; }
+            /* NEU: Normale Schrift für Interpretation */
+            .interp { color: #333; font-weight: normal; margin-top: 10px; display: block; font-family: 'Segoe UI', sans-serif; }
+            
             .stats-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 60px; padding-top: 30px; border-top: 2px solid #eee; }
             .stats-block h4 { color: #2c3e50; margin-top: 0; font-size: 1.2em; border-bottom: 2px solid #b2abd2; display: inline-block; padding-bottom: 5px; }
             .stats-content { background: #fdfdfd; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; height: 100%; }
-            
             .validity-score { font-size: 2.5em; font-weight: bold; color: #5e3c99; margin-right: 15px; }
             .sig-value { font-family: monospace; font-weight: bold; color: #d35400; }
             
@@ -48,11 +57,11 @@
                 <h2>Raum-zeitliche Analyse der Grimmschen Weistümer</h2>
             </header>
 
-            <div class="data-header">Datenbasis & Belegzahlen</div>
+            <div class="data-header">DATENBASIS & BELEGZAHLEN</div>
             <div class="data-box">
                 <div class="stat-card">
                     <span class="stat-val" style="color: #2c3e50">760</span>
-                    <span class="stat-label">Weistümer mit Lexem <br>"Wein"</span>
+                    <span class="stat-label">Weistümer mit<br>Lexem "Wein"</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-val" style="color: #e66101">280</span>
@@ -60,7 +69,7 @@
                 </div>
                 <div class="stat-card">
                     <span class="stat-val" style="color: #b2abd2">30</span>
-                    <span class="stat-label">Übergangsform/<br>Nebeneinander</span>
+                    <span class="stat-label">Übergangsform /<br>Nebeneinander</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-val" style="color: #5e3c99">450</span>
@@ -74,8 +83,23 @@
             </div>
 
             <h3 class="section-title">Quantitative Auswertung</h3>
+            
             <div class="diagram-grid">
-    <div class="card"><h4>Relative Häufigkeit (Gesamt)</h4><img src="Diagramme/00_Gesamt_Verteilung.png"></div><div class="card"><h4>Verlauf der Datendichte</h4><img src="Diagramme/00_Verlaufskurve_Datendichte.png"></div></div><h3 class="section-title">Regionale Differenzierung</h3><div class="diagram-grid"><div class="card"><h4>CH</h4><img src="Diagramme/Region_CH.png"></div><div class="card"><h4>Elsass</h4><img src="Diagramme/Region_Elsass.png"></div><div class="card"><h4>MDT</h4><img src="Diagramme/Region_MDT.png"></div><div class="card"><h4>NDT</h4><img src="Diagramme/Region_NDT.png"></div><div class="card"><h4>OOD</h4><img src="Diagramme/Region_OOD.png"></div><div class="card"><h4>WMD</h4><img src="Diagramme/Region_WMD.png"></div><div class="card"><h4>WOD</h4><img src="Diagramme/Region_WOD.png"></div>
+    <div class="card"><h4>Relative Häufigkeit (Gesamt)</h4><img src="Diagramme/00_Gesamt_Verteilung.png"></div><div class="card"><h4>Verlauf der Datendichte</h4><img src="Diagramme/00_Verlaufskurve_Datendichte.png"></div></div>
+        <div class="full-width-card">
+            <div style="text-align:center;">
+                <h4 style="color:#34495e; margin-bottom:15px; text-align:left;">Validierung: Korrelations-Check</h4>
+                <img src="Korrelation_Check.png">
+            </div>
+            <div class="corr-box">
+                <b>Analyse über 31 Jahrzehnte:</b><br><br>
+                Pearson r:    <span class="corr-val">0.1137</span> (p=0.5424)<br>
+                Spearman rho: <span class="corr-val">0.1503</span> (p=0.4195)<br>
+                <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
+                <span class="interp">Interpretation:<br>Kein oder sehr schwacher Zusammenhang.<br>Die Zunahme von 'ei' ist NICHT nur ein Effekt der höheren Belegzahl.</span>
+            </div>
+        </div>
+        <h3 class="section-title">Regionale Differenzierung</h3><div class="diagram-grid"><div class="card"><h4>CH</h4><img src="Diagramme/Region_CH.png"></div><div class="card"><h4>Elsass</h4><img src="Diagramme/Region_Elsass.png"></div><div class="card"><h4>MDT</h4><img src="Diagramme/Region_MDT.png"></div><div class="card"><h4>NDT</h4><img src="Diagramme/Region_NDT.png"></div><div class="card"><h4>OOD</h4><img src="Diagramme/Region_OOD.png"></div><div class="card"><h4>WMD</h4><img src="Diagramme/Region_WMD.png"></div><div class="card"><h4>WOD</h4><img src="Diagramme/Region_WOD.png"></div>
             </div>
             
             <div class="stats-footer">
@@ -102,19 +126,18 @@
                             <tr><td>[i]</td><td>339</td><td>545</td></tr>
                             <tr><td>[ei]</td><td>394</td><td>869</td></tr>
                         </table>
-                        
                         <p><b>Ergebnis Chi-Quadrat-Test:</b></p>
                         <ul style="list-style: none; padding-left: 0;">
                             <li>p-Wert: <span class="sig-value">0.0007</span> (Signifikant)</li>
                             <li>Cramer's V: <span class="sig-value">0.0742</span> (Effektstärke: sehr schwach)</li>
                         </ul>
-                        <p style="font-size: 0.85em; color: #555;"><i>Interpretation: Der Zusammenhang ist statistisch signifikant, aber die Effektstärke ist so gering, dass die Flexionsmorphologie kaum als treibender Faktor für den Lautwandel angesehen werden kann.</i></p>
+                        <p style="font-size: 0.85em; color: #555;"><i>Interpretation: Signifikanter, aber schwacher Zusammenhang. Flexionsmorphologie ist kein Haupttreiber des Lautwandels.</i></p>
                     </div>
                 </div>
             </div>
 
             <footer class="footer">
-                <p>Erstellt am 04.01.2026 | Software: Python (Pandas, Plotly, SciPy)| © Lea Schäfer</p>
+                <p>Erstellt am 04.01.2026 | Software: Python (Pandas, Plotly, SciPy) | © Lea Schäfer</p>
                 <a href="Diphthongierung.csv" class="btn-csv">📥 Rohdaten (CSV)</a>
             </footer>
         </div>
