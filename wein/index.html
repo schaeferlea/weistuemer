@@ -24,6 +24,7 @@
             iframe { width: 100%; height: 100%; border: none; }
             
             .diagram-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-top: 20px; }
+            
             .card { border: 1px solid #eee; padding: 20px; border-radius: 10px; background: #fff; transition: box-shadow 0.3s; }
             .card h4 { margin: 0 0 15px 0; color: #34495e; font-size: 1.1em; border-bottom: 2px solid #f4f7f6; padding-bottom: 10px; }
             .card img { width: 100%; height: auto; border-radius: 5px; }
@@ -37,7 +38,6 @@
             
             .corr-box { background: #f9f9f9; padding: 20px; border-radius: 5px; font-size: 0.9em; font-family: monospace; border: 1px solid #ddd; height: fit-content; }
             .corr-val { color: #d35400; font-weight: bold; }
-            /* NEU: Normale Schrift für Interpretation */
             .interp { color: #333; font-weight: normal; margin-top: 10px; display: block; font-family: 'Segoe UI', sans-serif; }
             
             .stats-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 60px; padding-top: 30px; border-top: 2px solid #eee; }
@@ -79,7 +79,7 @@
 
             <h3 class="section-title">Interaktive Verlaufskarte</h3>
             <div class="map-container">
-                <iframe src="Diphthongierung_Karte_Final_v7.html"></iframe>
+                <iframe src="Diphthongierung_Karte_Kumulativ.html"></iframe>
             </div>
 
             <h3 class="section-title">Quantitative Auswertung</h3>
@@ -96,10 +96,10 @@
                 Pearson r:    <span class="corr-val">0.1137</span> (p=0.5424)<br>
                 Spearman rho: <span class="corr-val">0.1503</span> (p=0.4195)<br>
                 <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
-                <span class="interp">Interpretation:<br>Kein oder sehr schwacher Zusammenhang.<br>Die Zunahme von 'ei' ist NICHT nur ein Effekt der höheren Belegzahl.</span>
+                <span class="interp">>> INTERPRETATION:<br>Kein oder sehr schwacher Zusammenhang.<br>Die Zunahme von 'ei' ist NICHT nur ein Effekt der höheren Belegzahl.</span>
             </div>
         </div>
-        <h3 class="section-title">Regionale Differenzierung</h3><div class="diagram-grid"><div class="card"><h4>CH</h4><img src="Diagramme/Region_CH.png"></div><div class="card"><h4>Elsass</h4><img src="Diagramme/Region_Elsass.png"></div><div class="card"><h4>MDT</h4><img src="Diagramme/Region_MDT.png"></div><div class="card"><h4>NDT</h4><img src="Diagramme/Region_NDT.png"></div><div class="card"><h4>OOD</h4><img src="Diagramme/Region_OOD.png"></div><div class="card"><h4>WMD</h4><img src="Diagramme/Region_WMD.png"></div><div class="card"><h4>WOD</h4><img src="Diagramme/Region_WOD.png"></div>
+        <h3 class="section-title">Regionale Differenzierung</h3><div class="diagram-grid"><div class="card"><h4>CH</h4><img src="Diagramme/Region_CH.png"></div><div class="card"><h4>Elsass</h4><img src="Diagramme/Region_Elsass.png"></div><div class="card"><h4>WOD</h4><img src="Diagramme/Region_WOD.png"></div><div class="card"><h4>MDT</h4><img src="Diagramme/Region_MDT.png"></div><div class="card"><h4>WMD</h4><img src="Diagramme/Region_WMD.png"></div><div class="card"><h4>NDT</h4><img src="Diagramme/Region_NDT.png"></div><div class="card"><h4>OOD</h4><img src="Diagramme/Region_OOD.png"></div>
             </div>
             
             <div class="stats-footer">
@@ -108,7 +108,7 @@
                     <div class="stats-content">
                         <p>Zur Prüfung der Datenqualität wurde ein <i>Spatial Neighbor Consistency Test</i> (k=5) durchgeführt. Er misst die Wahrscheinlichkeit, dass benachbarte Orte dieselbe Sprachvariante verwenden.</p>
                         <div style="display: flex; align-items: center; margin-top: 15px;">
-                            <span class="validity-score">65.2%</span>
+                            <span class="validity-score">66.2%</span>
                             <div>
                                 <strong>Bewertung: Hoch (Klare Areale)</strong><br>
                                 <span style="color: grey; font-size: 0.9em;">Ein hoher Wert indiziert valide Sprachräume (Isoglossen) statt zufälliger Streuung.</span>
