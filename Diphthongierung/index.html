@@ -1,0 +1,110 @@
+
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Diphthongierung mhd. î / û</title>
+        <style>
+            :root { --color-wein: #5e3c99; --color-haus: #e66101; --bg: #f8f9fa; --text: #2c3e50; }
+            body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+            
+            .hero { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 60px 20px; text-align: center; }
+            .hero h1 { margin: 0; font-size: 2.5em; }
+            .hero h2 { font-weight: 300; color: #bdc3c7; }
+            .container { max-width: 1200px; margin: -40px auto 40px; padding: 0 20px; }
+            
+            .study-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px; }
+            .card { background: white; border-radius: 12px; border-top: 6px solid #ccc; padding: 30px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-5px); }
+            .card-wein { border-color: var(--color-wein); }
+            .card-haus { border-color: var(--color-haus); }
+            
+            .btn { display: inline-block; padding: 10px 25px; border-radius: 20px; text-decoration: none; color: white; font-weight: bold; margin-top: 15px; }
+            .btn-wein { background: var(--color-wein); }
+            .btn-haus { background: var(--color-haus); }
+            
+            .comp-sec { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+            .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; }
+            .comp-img { width: 100%; border: 1px solid #eee; border-radius: 5px; }
+            
+            .stat-explainer { background: #f9f9f9; padding: 25px; border-radius: 8px; border: 1px solid #eee; display: flex; flex-direction: column; justify-content: center; }
+            .stat-explainer h4 { margin-top: 0; color: #2c3e50; }
+            .stat-explainer p { font-size: 0.95em; color: #555; line-height: 1.5; margin-bottom: 15px; }
+            
+            .download-btn { display: inline-block; background: #95a5a6; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-size: 0.9em; margin-top: 20px; }
+            .download-btn:hover { background: #7f8c8d; }
+            
+            .footer { text-align: center; margin-top: 50px; color: #aaa; font-size: 0.9em; }
+        </style>
+    </head>
+    <body>
+        <header class="hero">
+            <h1>Diphthongierung von mhd. î bzw. û</h1>
+            <h2>Raum-zeitliche Analyse der Grimmschen Weistümer</h2>
+        </header>
+        
+        <div class="container">
+            <div class="study-grid">
+                <div class="card card-wein">
+                    <h3 style="color: var(--color-wein)">Studie 1: WEIN</h3>
+                    <p>Analyse: mhd. <i>î</i> > nhd. <i>ei</i></p>
+                    <ul style="text-align:left; color:#555;">
+                        <li>Korpus: 760 Weistümer mit Lexem "Wein"</li>
+                        <li>Fokus: Geographie & Genitiv</li>
+                    </ul>
+                    <a href="Diphthongierung_Poster_Final.html" class="btn btn-wein">Zur Detailanalyse &rarr;</a>
+                </div>
+                
+                <div class="card card-haus">
+                    <h3 style="color: var(--color-haus)">Studie 2: HAUS</h3>
+                    <p>Analyse: mhd. <i>û</i> > nhd. <i>au</i></p>
+                    <ul style="text-align:left; color:#555;">
+                        <li>Korpus: ~500 Weistümer mit Lexem "Haus"</li>
+                        <li>Fokus: Lexikalische Diffusion</li>
+                    </ul>
+                    <a href="Diphthongierung_Haus_Detail.html" class="btn btn-haus">Zur Detailanalyse &rarr;</a>
+                </div>
+            </div>
+            
+            <div class="comp-sec">
+                <h2 style="text-align:center; border-bottom:1px solid #eee; padding-bottom:15px; color:#34495e;">Gekoppelte Analyse mhd. û und î</h2>
+                
+                <div class="comp-grid">
+                    <div>
+                        <h4 style="text-align:center; color:#555;">Zeitlicher Verlauf</h4>
+                        <img src="Vergleich_Timeline.png" class="comp-img">
+                    </div>
+                    <div>
+                        <h4 style="text-align:center; color:#555;">Regionale Unterschiede (ab 1400)</h4>
+                        <img src="Vergleich_Region.png" class="comp-img">
+                    </div>
+                    <div>
+                        <h4 style="text-align:center; color:#555;">Regionale Kopplung (Scatterplot)</h4>
+                        <img src="Statistik_Vergleich_Scatter.png" class="comp-img">
+                    </div>
+                    
+                    <div class="stat-explainer">
+                        <h4>Statistischer "Deep Dive"</h4>
+                        <p><b>1. Pionier-Test (McNemar):</b><br>
+                        Dieser Test prüft in Weistümern mit gemischten Belegen, welches Lexem moderner ist. Ein signifikanter Wert zeigt an, ob "Wein" oder "Haus" den Wandel systemisch anführt.</p>
+                        
+                        <p><b>2. Regionale Korrelation (Pearson):</b><br>
+                        Der Scatterplot links visualisiert die geographische Kopplung der beiden Prozesse.<br>
+                        <span style="color:#e74c3c; font-weight:bold;">Rote Linie:</span> Perfekte Synchronität.<br>
+                        <span style="color:#333;">Punkte darunter:</span> Wein ist weiter fortgeschritten.<br>
+                        <span style="color:#333;">Punkte darüber:</span> Haus ist weiter fortgeschritten.</p>
+                        
+                        <p><i>Interpretation: Liegen die Punkte eng an der Linie (hohes r), ist der Wandel stark gekoppelt. Starke Streuung deutet auf unabhängige Entwicklungen hin.</i></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <a href="Diphthongierung.csv" class="download-btn">📥 Gesamtdaten herunterladen (CSV)</a><br><br>
+                Erstellt am 17.02.2026 | © Lea Schäfer
+            </div>
+        </div>
+    </body>
+    </html>
+    
